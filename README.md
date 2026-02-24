@@ -6,7 +6,6 @@
 ![Main UI Mockup](https://raw.githubusercontent.com/aarubikarubi/DailyGameLauncher/main/preview.png)
 
 ---
-**🤖 開発手法の正直な開示**: 
 このアプリは、Google DeepMindの[Antigravity](https://github.com/google/antigravity)を活用して**全自動で構築**されたものです。基本的なコーディングからデザイン、インストーラーの作成に至るまで、すべてAIによって自律的に作成されました。
 ---
 
