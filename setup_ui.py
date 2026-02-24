@@ -700,54 +700,79 @@ class ModernWindow(QMainWindow):
             QMessageBox.warning(self, "エラー", "ゲーム表示名を入力するか、プリセットから選んでから「自動検出」を押してください。")
             return
             
-        target_keywords = []
         target_exe = ""
+        registry_keywords = []
         
         if "スターレイル" in current_name or "star rail" in current_name.lower():
-            target_keywords = ["Star Rail", "スターレイル", "崩壊：スターレイル"]
             target_exe = "StarRail.exe"
+            registry_keywords = ["スターレイル", "Star Rail"]
         elif "原神" in current_name or "genshin" in current_name.lower():
-            target_keywords = ["Genshin", "原神"]
             target_exe = "GenshinImpact.exe"
+            registry_keywords = ["原神", "Genshin", "HoYoPlay"] # HoYoPlay handles genshin now
         elif "鳴潮" in current_name or "wuthering" in current_name.lower() or "wuwa" in current_name.lower():
-            target_keywords = ["Wuthering", "鳴潮", "Wuthering Waves"]
             target_exe = "Wuthering Waves.exe"
+            registry_keywords = ["鳴潮", "Wuthering"]
         else:
-            target_keywords = [current_name]
             target_exe = current_name + ".exe"
+            registry_keywords = [current_name]
 
         found_path = None
         
-        # Searching routines identical to old version (omitted deeply nested loops for performance / safety)
-        common_static_paths = [
-            rf"C:\Program Files\{target_exe.replace('.exe', '')}\Games\{target_exe}",
-            rf"C:\Program Files\HoYoPlay\games\{target_exe.replace('.exe', '')}\Games\{target_exe}",
-            rf"D:\Program Files\{target_exe.replace('.exe', '')}\Games\{target_exe}",
-            rf"D:\Program Files\HoYoPlay\games\{target_exe.replace('.exe', '')}\Games\{target_exe}",
-            rf"D:\{target_exe.replace('.exe', '')} Games\{target_exe}",
-            rf"D:\HoYoPlay\games\{target_exe.replace('.exe', '')}\Games\{target_exe}",
-            rf"C:\Program Files\Genshin Impact\Genshin Impact game\GenshinImpact.exe",
-            rf"D:\Genshin Impact\Genshin Impact game\GenshinImpact.exe",
-            rf"C:\Program Files\Wuthering Waves\Wuthering Waves Game\Wuthering Waves.exe",
-            rf"D:\Wuthering Waves\Wuthering Waves Game\Wuthering Waves.exe",
+        # 1. 共通の固定パスを強めに（ユーザー環境に合わせたもの）
+        common_paths = [
+            rf"C:\Program Files\HoYoPlay\games\Genshin Impact game\{target_exe}",
+            rf"D:\HoYoPlay\games\Genshin Impact game\{target_exe}",
+            rf"D:\HoYoPlay\games\Star Rail game\Games\{target_exe}",
+            rf"D:\HoYoPlay\games\Houkai3rd game\{target_exe}",
+            rf"C:\Program Files\Wuthering Waves\Wuthering Waves Game\{target_exe}",
+            rf"D:\Wuthering Waves\Wuthering Waves Game\{target_exe}",
+            rf"D:\SteamLibrary\steamapps\common\Wuthering Waves\{target_exe}",
+            rf"D:\SteamLibrary\steamapps\common\Wuthering Waves\Wuthering Waves Game\{target_exe}",
+            rf"D:\Epic Games\WutheringWaves\Wuthering Waves Game\{target_exe}",
+            rf"C:\Program Files\Epic Games\WutheringWaves\Wuthering Waves Game\{target_exe}",
         ]
         
-        if "StarRail.exe" in target_exe:
-            common_static_paths.extend([
-                r"C:\Program Files\Star Rail\Games\StarRail.exe",
-                r"D:\Star Rail\Games\StarRail.exe",
-                r"C:\Star Rail\Games\StarRail.exe",
-                r"D:\Star Rail Games\StarRail.exe",
-                r"C:\Star Rail Games\StarRail.exe",
-                r"D:\HoYoPlay\games\Star Rail game\Games\StarRail.exe",
-                r"C:\Program Files\HoYoPlay\games\Star Rail game\Games\StarRail.exe"
-            ])
-            
-        for static_path in common_static_paths:
+        for static_path in common_paths:
             if os.path.exists(static_path):
                 found_path = static_path
                 break
                 
+        if not found_path:
+            # 2. レジストリ検索
+            import winreg
+            def get_install_paths(hive, flag):
+                paths = []
+                try:
+                    key_path = r"Software\Microsoft\Windows\CurrentVersion\Uninstall"
+                    with winreg.OpenKey(hive, key_path, 0, winreg.KEY_READ | flag) as key:
+                        for i in range(winreg.QueryInfoKey(key)[0]):
+                            try:
+                                subkey_name = winreg.EnumKey(key, i)
+                                with winreg.OpenKey(key, subkey_name) as subkey:
+                                    display_name = winreg.QueryValueEx(subkey, "DisplayName")[0]
+                                    install_loc = winreg.QueryValueEx(subkey, "InstallLocation")[0]
+                                    if install_loc and any(kw.lower() in str(display_name).lower() for kw in registry_keywords):
+                                        paths.append(install_loc)
+                            except EnvironmentError:
+                                continue
+                except EnvironmentError:
+                    pass
+                return paths
+
+            install_dirs = []
+            install_dirs.extend(get_install_paths(winreg.HKEY_LOCAL_MACHINE, winreg.KEY_WOW64_64KEY))
+            install_dirs.extend(get_install_paths(winreg.HKEY_LOCAL_MACHINE, winreg.KEY_WOW64_32KEY))
+            install_dirs.extend(get_install_paths(winreg.HKEY_CURRENT_USER, 0))
+            
+            sub_dirs = ["", "Genshin Impact game", r"Star Rail game\Games", "Games", "Wuthering Waves Game", r"games\Genshin Impact game", r"games\Star Rail game\Games"]
+            for base_dir in install_dirs:
+                if found_path: break
+                for sub in sub_dirs:
+                    check_path = os.path.join(base_dir, sub, target_exe)
+                    if os.path.exists(check_path):
+                        found_path = check_path
+                        break
+        
         if not found_path:
             QMessageBox.information(self, "検出失敗", f"「{current_name}」が見つかりませんでした。手動でご選択ください。")
             return
