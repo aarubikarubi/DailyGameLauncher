@@ -17,3 +17,19 @@
 
 ## インストール
 [Releases](https://github.com/aarubikarubi/DailyGameLauncher/releases) から最新のインストーラーをダウンロードして実行してください。
+
+## 動作環境（前提条件）
+* OS: Windows 10 / 11
+* Python 3.10以上 (ソースから実行する場合)
+
+## 開発者向け案内（Contributing）
+ローカル環境を構築し、テスト起動する手順です。
+
+1. 依存関係のインストール:
+   ```bash
+   pip install -r requirements.txt
+   ```
+2. アプリケーションの起動:
+   ```bash
+   python main.py
+   ```

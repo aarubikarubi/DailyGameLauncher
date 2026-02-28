@@ -1,4 +1,4 @@
-# 日課ツール (Daily Game Launcher) v2.1.0 アップデート内容
+# 日課ツール (Daily Game Launcher) v3.0.1 アップデート内容
 
 ## 新機能
 

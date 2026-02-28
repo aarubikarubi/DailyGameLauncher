@@ -6,7 +6,7 @@ import tempfile
 import subprocess
 from PyQt6.QtWidgets import QMessageBox
 
-CURRENT_VERSION = "v2.1.0"
+CURRENT_VERSION = "v3.0.1"
 GITHUB_REPO = "aarubikarubi/DailyGameLauncher"
 
 def check_and_apply_updates(parent_widget=None):
